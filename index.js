@@ -6,13 +6,14 @@ var glslify = require('glslify');
 var RSVP = require('rsvp');
 var getPixels = require("get-pixels");
 var dat = require('exdat');
+var mustache = require('mustache');
 
 // this is a polyfill that gets attached to browser global
 require('whatwg-fetch');
 var fetch = window.fetch;
 
 var vert = glslify('./shader.vert');
-var frag = glslify('./shader.frag');
+// var frag = glslify('./shader.frag');
 
 var DATA_URL = 'https://s3.amazonaws.com/helen-images/annotations.json';
 var S3_PATH = "https://s3.amazonaws.com/helen-images/images/";
@@ -24,6 +25,7 @@ var _gl;
 
 var _params = {
 	dataIndex: 0
+	, nTextures: 3
 	, displacement: 0.05
 }
 
@@ -32,6 +34,11 @@ var texOffset = 0;
 shell.on('gl-init', function() {
 	gl = shell.gl;
 	_gui = new dat.GUI();
+	_gui.add(_params, 'nTextures', 0, 10)
+		.step(1)
+		.onChange(function() {
+
+		});
 	_gui.add(_params, 'displacement', 0, 0.1);
 
 	fetch(DATA_URL).then(parseJSON).then(function(body) {
@@ -44,27 +51,27 @@ shell.on('gl-init', function() {
 		// 	.onChange(function(v) {
 		// 		loadImageId(v);
 		// 	});
-
-		loadImageFromData(_data[0]).then(function(imgArr) {
-			_textures[0] = createTexture(gl, imgArr);
-			loadImageFromData(_data[1]).then(function(imgArr) {
-				_textures[1] = createTexture(gl, imgArr);
-				loadImageFromData(_data[2]).then(function(imgArr) {
-					_textures[2] = createTexture(gl, imgArr);
-				});
+		
+		for (var i=0; i<_params.nTextures; i++) {
+			loadImageFromData(_data[i]).then(function(imgArr) {
+				console.log('create texture', i);
+				// @todo: this will add images out of order currently
+				_textures.push(createTexture(gl, imgArr));
+				// console.log('texture', i, _textures[i]);
 			});
-		})
+		}
 
 	});
 
-	shader = createShader(gl, vert, frag);
+	shader = createShader(gl, vert, generateFrag(_params.nTextures));
   shader.attributes.position.location = 0;
 
 });
 
 shell.on('tick', function() {
 	texOffset++;
-	if(texOffset > _textures.length-1) {
+	console.log(texOffset);
+	if(texOffset >= _params.nTextures) {
 		texOffset = 0;
 	}
 });
@@ -72,15 +79,16 @@ shell.on('tick', function() {
 shell.on('gl-render', function(t) {
 	var gl = shell.gl;
 
-	if(_textures.length >= nTextures) {
+	if(_textures.length >= _params.nTextures) {
 
 		// bind shader
 		shader.bind();
 		
 		shader.uniforms.displacement = _params.displacement;
-		shader.uniforms.tex0 = _textures[Math.abs(0-texOffset)].bind(0);
-		shader.uniforms.tex1 = _textures[Math.abs(1-texOffset)].bind(1);
-		shader.uniforms.tex2 = _textures[Math.abs(2-texOffset)].bind(2);
+
+		for(var i = 0; i < _params.nTextures; i++) {
+			shader.uniforms['tex'+i] = _textures[Math.abs(texOffset-i)].bind(i);			
+		}
 
 		shader.attributes.position.pointer();
 
@@ -96,6 +104,10 @@ shell.on("gl-error", function(e) {
 
 function parseJSON(r) {
 	return r.json();
+}
+
+function generateFrag(n) {
+	return glslify('./shader.frag');
 }
 
 function loadImageId(id) {

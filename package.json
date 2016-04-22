@@ -23,6 +23,7 @@
     "gl-now": "~1.4.0",
     "gl-shader": "~4.1.1",
     "gl-texture2d": "^2.0.10",
+    "mustache": "^2.2.1",
     "rsvp": "^3.2.1",
     "whatwg-fetch": "^0.11.0"
   },
