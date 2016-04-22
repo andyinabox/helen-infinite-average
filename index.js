@@ -17,15 +17,33 @@ var DATA_URL = 'https://s3.amazonaws.com/helen-images/annotations.json';
 var S3_PATH = "https://s3.amazonaws.com/helen-images/images/";
 
 var texture;
+var _data;
+var id = 0;
+
+function loadImageId(gl, id) {
+	console.log('loadImageId', id);
+	loadImageFromData(_data[id]).then(function(imgArr){
+		// set texture from ndarray
+		if(!texture) {
+			texture = createTexture(gl, imgArr);
+		} else {
+			texture.setPixels(imgArr);
+		}
+		// loadImageId(gl, id+1);
+	});
+}
 
 shell.on('gl-init', function() {
 	var gl = shell.gl;
 
 	fetch(DATA_URL).then(parseJSON).then(function(body) {
-		loadImageFromData(body[0]).then(function(imgArr){
-			// set texture from ndarray
-			texture = createTexture(gl, imgArr);
-		});
+		_data = body;
+		loadImageId(gl, id);
+
+		// window.setInterval(function() {
+		// 	id++;
+		// 	loadImageId(gl, id);
+		// }, 1000);
 	});
 
 	shader = createShader(gl, vert, frag);
@@ -59,6 +77,8 @@ function parseJSON(r) {
 	return r.json();
 }
 
+
+
 function loadImageFromData(item) {
 	var path = S3_PATH+item[0][0];
 	return loadImageArray(path);
@@ -67,7 +87,7 @@ function loadImageFromData(item) {
 // resolves with an ndarray
 function loadImageArray(path) {
 	return new RSVP.Promise(function(resolve, reject) {
-		getPixels('https://s3.amazonaws.com/helen-images/images/100032540_1.jpg', function(err, pix) {
+		getPixels(path, function(err, pix) {
 			if(err) {
 				reject(err);
 			} else {
