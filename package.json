@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "a-big-triangle": "~1.0.2",
+    "exdat": "^0.6.2",
     "get-pixels": "^3.3.0",
     "gl-now": "~1.4.0",
     "gl-shader": "~4.1.1",

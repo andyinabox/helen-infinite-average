@@ -5,6 +5,7 @@ var gessoCanvas = require('a-big-triangle');
 var glslify = require('glslify');
 var RSVP = require('rsvp');
 var getPixels = require("get-pixels");
+var dat = require('exdat');
 
 // this is a polyfill that gets attached to browser global
 require('whatwg-fetch');
@@ -16,34 +17,32 @@ var frag = glslify('./shader.frag');
 var DATA_URL = 'https://s3.amazonaws.com/helen-images/annotations.json';
 var S3_PATH = "https://s3.amazonaws.com/helen-images/images/";
 
-var texture;
+var _texture;
 var _data;
-var id = 0;
+var _gl;
 
-function loadImageId(gl, id) {
-	console.log('loadImageId', id);
-	loadImageFromData(_data[id]).then(function(imgArr){
-		// set texture from ndarray
-		if(!texture) {
-			texture = createTexture(gl, imgArr);
-		} else {
-			texture.setPixels(imgArr);
-		}
-		// loadImageId(gl, id+1);
-	});
+var _params = {
+	dataIndex: 0
 }
 
+
+
 shell.on('gl-init', function() {
-	var gl = shell.gl;
+	gl = shell.gl;
+	_gui = new dat.GUI();
 
 	fetch(DATA_URL).then(parseJSON).then(function(body) {
 		_data = body;
-		loadImageId(gl, id);
 
-		// window.setInterval(function() {
-		// 	id++;
-		// 	loadImageId(gl, id);
-		// }, 1000);
+
+		_gui.add(_params, 'dataIndex', 0, _data.length-1)
+			.step(1)
+			.listen()
+			.onChange(function(v) {
+				loadImageId(v);
+			});
+
+		loadImageId(_params.dataIndex);
 	});
 
 	shader = createShader(gl, vert, frag);
@@ -54,12 +53,12 @@ shell.on('gl-init', function() {
 shell.on('gl-render', function(t) {
 	var gl = shell.gl;
 
-	if(texture) {
+	if(_texture) {
 
 		// bind shader
 		shader.bind();
 		
-		shader.uniforms.texture = texture.bind();
+		shader.uniforms.texture = _texture.bind();
 
 		shader.attributes.position.pointer();
 
@@ -77,7 +76,12 @@ function parseJSON(r) {
 	return r.json();
 }
 
-
+function loadImageId(id) {
+	console.log('loadImageId', id);
+	loadImageFromData(_data[id]).then(function(imgArr){
+			_texture = createTexture(shell.gl, imgArr);
+	});
+}
 
 function loadImageFromData(item) {
 	var path = S3_PATH+item[0][0];
