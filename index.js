@@ -34,11 +34,11 @@ var texOffset = 0;
 shell.on('gl-init', function() {
 	gl = shell.gl;
 	_gui = new dat.GUI();
-	_gui.add(_params, 'nTextures', 0, 10)
-		.step(1)
-		.onChange(function() {
+	// _gui.add(_params, 'nTextures', 0, 10)
+	// 	.step(1)
+	// 	.onChange(function() {
 
-		});
+	// 	});
 	_gui.add(_params, 'displacement', 0, 0.1);
 
 	fetch(DATA_URL).then(parseJSON).then(function(body) {
