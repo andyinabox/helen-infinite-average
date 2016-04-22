@@ -1,12 +1,12 @@
 {
   "name": "helen-infinite-average",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
     "start": "budo index.js --live --open -- -t glslify",
-    "build": "budo-demo index.js",
+    "build": "budo-demo index.js; browserify index.js -t glslify | uglifyjs -m > dist/index.js",
     "deploy": "npm run build; gh-pages -d dist; npm run clean",
     "clean": "rm -r dist"
   },
@@ -27,9 +27,11 @@
     "whatwg-fetch": "^0.11.0"
   },
   "devDependencies": {
+    "browserify": "^13.0.0",
     "budo": "~7.1.0",
     "budo-demo": "0.0.4",
-    "glslify": "~5.0.0"
+    "glslify": "~5.0.0",
+    "uglifyjs": "^2.4.10"
   },
   "repository": {
     "type": "git",
