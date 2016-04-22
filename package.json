@@ -5,7 +5,10 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "budo index.js --live --open -- -t glslify"
+    "start": "budo index.js --live --open -- -t glslify",
+    "build": "budo-demo index.js",
+    "deploy": "npm run build; gh-pages -d dist; npm run clean",
+    "clean": "rm -r dist"
   },
   "author": {
     "name": "Andy Dayton",
@@ -16,6 +19,7 @@
     "a-big-triangle": "~1.0.2",
     "exdat": "^0.6.2",
     "get-pixels": "^3.3.0",
+    "gh-pages": "^0.11.0",
     "gl-now": "~1.4.0",
     "gl-shader": "~4.1.1",
     "gl-texture2d": "^2.0.10",
@@ -23,8 +27,9 @@
     "whatwg-fetch": "^0.11.0"
   },
   "devDependencies": {
-    "glslify": "~5.0.0",
-    "budo": "~7.1.0"
+    "budo": "~7.1.0",
+    "budo-demo": "0.0.4",
+    "glslify": "~5.0.0"
   },
   "repository": {
     "type": "git",
