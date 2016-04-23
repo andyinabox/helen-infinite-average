@@ -1,3 +1,4 @@
+var _ = require('lodash');
 var shell = require('gl-now')();
 var createShader = require('gl-shader');
 var createTexture = require('gl-texture2d');
@@ -6,7 +7,6 @@ var glslify = require('glslify');
 var RSVP = require('rsvp');
 var getPixels = require("get-pixels");
 var dat = require('exdat');
-var mustache = require('mustache');
 
 // this is a polyfill that gets attached to browser global
 require('whatwg-fetch');
@@ -41,6 +41,13 @@ shell.on('gl-init', function() {
 		});
 	_gui.add(_params, 'displacement', 0, 0.1);
 
+	fetch('./shader.frag.template').then(parseTemplate).then(function(text) {
+		var tpl = _.template(text);
+		var data = { iterator: createNArray(3) };
+		var compiled = tpl(data);
+		console.log('template', data, compiled);
+	});
+
 	fetch(DATA_URL).then(parseJSON).then(function(body) {
 		_data = body;
 
@@ -70,7 +77,7 @@ shell.on('gl-init', function() {
 
 shell.on('tick', function() {
 	texOffset++;
-	console.log(texOffset);
+	// console.log(texOffset);
 	if(texOffset >= _params.nTextures) {
 		texOffset = 0;
 	}
@@ -102,8 +109,12 @@ shell.on("gl-error", function(e) {
   throw new Error("WebGL not supported :(")
 });
 
-function parseJSON(r) {
-	return r.json();
+function parseJSON(response) {
+	return response.json();
+}
+
+function parseTemplate(response) {
+	return response.text();
 }
 
 function generateFrag(n) {
@@ -133,4 +144,12 @@ function loadImageArray(path) {
 			}
 		});
 	});	
+}
+
+function createNArray(n) {
+	var arr = [];
+	for(var i = 0; i < n; i++) {
+		arr.push(i+'');
+	}
+	return arr;
 }
