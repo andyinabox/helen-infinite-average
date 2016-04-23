@@ -26,7 +26,7 @@ void main() {
 <% }); %>
 
 <% _.forEach(iterator, function(n) { %>
-  avg = texture2D(tex<%= n %>, st);
+  avg += texture2D(tex<%= n %>, st);
 <% }); %>
   avg = avg / n;
 

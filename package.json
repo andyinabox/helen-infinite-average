@@ -5,7 +5,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "budo index.js --live --open -- -t glslify",
+    "start": "budo index.js --live --open -- -t glslify -t jstify",
     "build": "budo-demo index.js; browserify index.js -t glslify | uglifyjs -m > dist/index.js",
     "deploy": "npm run build; gh-pages -d dist; npm run clean",
     "clean": "rm -r dist"
@@ -33,6 +33,7 @@
     "budo-demo": "0.0.4",
     "glslify": "~5.0.0",
     "hbsfy": "^2.7.0",
+    "jstify": "^0.14.0",
     "uglifyjs": "^2.4.10"
   },
   "repository": {
