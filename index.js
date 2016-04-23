@@ -1,3 +1,4 @@
+var _ = require('lodash');
 var shell = require('gl-now')();
 var createShader = require('gl-shader');
 var createTexture = require('gl-texture2d');
@@ -6,13 +7,13 @@ var glslify = require('glslify');
 var RSVP = require('rsvp');
 var getPixels = require("get-pixels");
 var dat = require('exdat');
-var mustache = require('mustache');
 
 // this is a polyfill that gets attached to browser global
 require('whatwg-fetch');
 var fetch = window.fetch;
 
 var vert = glslify('./shader.vert');
+var fragTemplate;
 // var frag = glslify('./shader.frag');
 
 var DATA_URL = 'https://s3.amazonaws.com/helen-images/annotations.json';
@@ -25,52 +26,50 @@ var _gl;
 
 var _params = {
 	dataIndex: 0
-	, nTextures: 3
-	, displacement: 0.05
+	, nTextures: 10
+	, displacement: 0.001
 }
 
 var texOffset = 0;
 
+
+var fragTplLoaded = fetch('./assets/shader.frag.tpl').then(parseTemplate).then(function(text) {
+	fragTemplate = _.template(text);
+});
+
+var dataLoaded = fetch(DATA_URL).then(parseJSON).then(function(body) {
+	_data = body;
+
+	
+	for (var i=0; i<_params.nTextures; i++) {
+		loadImageFromData(_data[i]).then(function(imgArr) {
+			// @todo: this will add images out of order currently
+			_textures.push(createTexture(gl, imgArr));
+		});
+	}
+
+});
+
 shell.on('gl-init', function() {
 	gl = shell.gl;
 	_gui = new dat.GUI();
-	// _gui.add(_params, 'nTextures', 0, 10)
-	// 	.step(1)
-	// 	.onChange(function() {
-
-	// 	});
+	// _gui.add(_params, 'nTextures', 0, 10).step(1)
 	_gui.add(_params, 'displacement', 0, 0.1);
 
-	fetch(DATA_URL).then(parseJSON).then(function(body) {
-		_data = body;
-
-
-		// _gui.add(_params, 'dataIndex', 0, _data.length-1)
-		// 	.step(1)
-		// 	.listen()
-		// 	.onChange(function(v) {
-		// 		loadImageId(v);
-		// 	});
-		
-		for (var i=0; i<_params.nTextures; i++) {
-			loadImageFromData(_data[i]).then(function(imgArr) {
-				console.log('create texture', i);
-				// @todo: this will add images out of order currently
-				_textures.push(createTexture(gl, imgArr));
-				// console.log('texture', i, _textures[i]);
-			});
-		}
-
-	});
-
-	shader = createShader(gl, vert, generateFrag(_params.nTextures));
-  shader.attributes.position.location = 0;
+	fragTplLoaded.then(function(){
+		// console.log('fragTplLoaded');
+		dataLoaded.then(function() {
+			// console.log('dataLoaded');
+			shader = createShader(gl, vert, generateFrag(_params.nTextures));
+			shader.attributes.position.location = 0;	
+		});
+	})
 
 });
 
 shell.on('tick', function() {
 	texOffset++;
-	console.log(texOffset);
+	// console.log(texOffset);
 	if(texOffset >= _params.nTextures) {
 		texOffset = 0;
 	}
@@ -79,7 +78,7 @@ shell.on('tick', function() {
 shell.on('gl-render', function(t) {
 	var gl = shell.gl;
 
-	if(_textures.length >= _params.nTextures) {
+	if(_textures.length >= _params.nTextures && shader) {
 
 		// bind shader
 		shader.bind();
@@ -102,12 +101,18 @@ shell.on("gl-error", function(e) {
   throw new Error("WebGL not supported :(")
 });
 
-function parseJSON(r) {
-	return r.json();
+function parseJSON(response) {
+	return response.json();
+}
+
+function parseTemplate(response) {
+	return response.text();
 }
 
 function generateFrag(n) {
-	return glslify('./shader.frag');
+	var frag = fragTemplate({ iterator: createNArray(n) });
+	// console.log(frag);
+	return frag; // glslify(frag, {inline: true});
 }
 
 function loadImageId(id) {
@@ -133,4 +138,12 @@ function loadImageArray(path) {
 			}
 		});
 	});	
+}
+
+function createNArray(n) {
+	var arr = [];
+	for(var i = 0; i < n; i++) {
+		arr.push(i+'');
+	}
+	return arr;
 }
